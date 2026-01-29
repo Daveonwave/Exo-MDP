@@ -72,9 +72,16 @@ def evaluate_tabular(env_name, env_id, Q, eval_env_params, keys=None, multiplier
             
         done = False
         cumulated_reward = 0
+        h = 0
         
         while not done:
-            action = np.argmax(Q[obs_key, :])  # Exploit learned values            
+            # Q has shape (H, S, A) in exavi and ucbvi
+            if Q.ndim == 3:
+                action = np.argmax(Q[h, obs_key, :])  # Exploit learned values
+                h += 1
+            else:
+                
+                action = np.argmax(Q[obs_key, :])  # Exploit learned values            
             next_obs, reward, terminated, truncated, info = env.step(action)
             next_obs_key = get_indices(next_obs, keys, multipliers)
             
@@ -84,7 +91,7 @@ def evaluate_tabular(env_name, env_id, Q, eval_env_params, keys=None, multiplier
             #print(f"Episode {episode}-{i}, Obs: {obs}, Action: {action}, Reward: {reward}")
             
         ep_cum_rewards.append(cumulated_reward)
-        n_actions.append(info['k'])
+        #n_actions.append(info['k'])
     
     # print(f"Training episode {episode}: Actions: {np.mean(n_actions)}")
     avg_cumulated_reward = np.mean(ep_cum_rewards) 

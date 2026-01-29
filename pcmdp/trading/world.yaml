@@ -10,7 +10,7 @@ trading:
   granularity: 0.02 # Price discretization step
   drift: 0.0 # Drift of the security price
   volatility: 0.3 # Volatility of the security price
-  risk_aversion: 0.1 # Risk aversion parameter
+  risk_aversion: 100.0 # Risk aversion parameter
   transaction_cost: 0.0625 # Transaction cost per trade unit
   permanent_impact: 0.00000025 # Permanent impact parameter
   temporary_impact: 0.00002 # Temporary impact parameter

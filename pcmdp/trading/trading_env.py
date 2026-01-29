@@ -78,7 +78,6 @@ class TradingEnv(Env):
         self.tau = self.T / self.N  # Length of each time interval
         
         self.eta_tilde = self.eta - 0.5 * self.gamma * self.tau  # Adjusted temporary impact parameter
-        #print(self.eta_tilde)
         
         self.rng = np.random.default_rng(seed)
 
@@ -158,7 +157,8 @@ class TradingEnv(Env):
         # holding_risk = 0.0
         
         reward = revenue - (execution_cost + holding_risk)
-        reward /= self.X_max * self.S_max  # Scale rewards
+        #reward /= 10.0  # Scale rewards
+        reward /= (self.X_max * self.S_max)  # Scale rewards
         
         # Update state
         self.k += 1
@@ -169,7 +169,7 @@ class TradingEnv(Env):
         S_next_idx = int((S_next - self.S_min) / self.granularity)
                 
         self._state = {'amount': X_next, 'price': S_next_idx}
-        info = {'k': self.k, 'n_k': n_k}
+        info = {'k': self.k, 'n_k': n_k, 'execution_cost': execution_cost, 'holding_risk': holding_risk, 'revenue': revenue}
         
         #print(f"Step {self.k}: X={X}, S={S:.2f}, X_next={X_next}, S_next={S_next:.2f}, n_k={n_k}, Reward={reward:.4f}")
         

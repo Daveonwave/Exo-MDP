@@ -18,9 +18,9 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
     # Hyperparameters
     alpha = args['alpha']
     gamma = args['gamma']
-    epsilon = args['epsilon']
-    epsilon_decay = args['epsilon_decay']
-    epsilon_min = args['epsilon_min']
+    # epsilon = args['epsilon']
+    # epsilon_decay = args['epsilon_decay']
+    # epsilon_min = args['epsilon_min']
     n_episodes = args['n_episodes']
     rng = np.random.default_rng(seed=seed)
     eval_seed = args['eval_seed']
@@ -95,10 +95,12 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
         while not done:
             # Random sampling the action just to move the environment forward
             # action = rng.integers(A)
-            if rng.uniform() < epsilon:
-                 action = rng.integers(A)    # Explore action space
-            else:
-                 action = np.argmax(Q[obs_key, :])
+            # if rng.uniform() < epsilon:
+            #      action = rng.integers(A)    # Explore action space
+            # else:
+            #      action = np.argmax(Q[obs_key, :])
+            action = np.argmax(Q[obs_key, :])
+            
             new_obs, _, terminated, truncated, _ = env.step(action) 
             new_obs_key = obs_to_key(new_obs, keys, multipliers)
             
@@ -128,11 +130,12 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
             vec_state = compose_vec_state(vec_state, unctrl_obs, batch_size)      
             indices = flatten_state(vec_state, keys, multipliers)
 
-            # Choose action based on epsilon-greedy policy
-            if rng.uniform() < epsilon:
-                vec_action = np.array([rng.integers(A)] * batch_size)  # Explore action space
-            else:
-                vec_action = np.argmax(Q[indices, :], axis=1)
+            # Choose action based on epsilon-greedy policy (not necessary, we can just use argmax)
+            # if rng.uniform() < epsilon:
+            #     vec_action = np.array([rng.integers(A)] * batch_size)  # Explore action space
+            # else:
+            #     vec_action = np.argmax(Q[indices, :], axis=1) 
+            vec_action = np.argmax(Q[indices, :], axis=1)
                 
             # Get the next state from the environment
             next_vec_state = func_env.transition(state=vec_state, action=vec_action, rng=rng, params=params)
@@ -141,10 +144,6 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
             # Calculate rewards
             rewards = func_env.reward(state=vec_state, action=vec_action, next_state=next_vec_state, rng=None, params=params)
             cumulated_rewards += rewards
-            
-            #print(i, next_vec_state)
-            #print(key_to_obs(16004, env, keys, multipliers))
-            #print(dataset['traffic'][i], print(dataset['traffic'][i+1]))
             
             # Q-update
             next_indices = flatten_state(next_vec_state, keys, multipliers)
@@ -161,20 +160,20 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
         writer.add_histogram('Q/Values', Q.flatten(), episode)
         
         # Decay epsilon
-        if args['decay_type'] == 'linear':
-            epsilon -= (1.0 - epsilon_min) / (n_episodes)
-            epsilon = max(epsilon_min, epsilon)
-        elif args['decay_type'] == 'exponential':
-            epsilon = max(epsilon_min, epsilon * epsilon_decay)
-        elif args['decay_type'] == 'mixed': # linear first half, exponential second half
-            if episode < n_episodes // 2:
-                epsilon -= (1.0 - epsilon_min) / (n_episodes)
-                epsilon = max(epsilon_min, epsilon)
-            else:
-                epsilon = max(epsilon_min, epsilon * epsilon_decay)
-        else:
-            raise ValueError(f"Unsupported decay type: {args['decay_type']}")
-        writer.add_scalar('Exploration/Epsilon', epsilon, episode)
+        # if args['decay_type'] == 'linear':
+        #     epsilon -= (1.0 - epsilon_min) / (n_episodes)
+        #     epsilon = max(epsilon_min, epsilon)
+        # elif args['decay_type'] == 'exponential':
+        #     epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        # elif args['decay_type'] == 'mixed': # linear first half, exponential second half
+        #     if episode < n_episodes // 2:
+        #         epsilon -= (1.0 - epsilon_min) / (n_episodes)
+        #         epsilon = max(epsilon_min, epsilon)
+        #     else:
+        #         epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        # else:
+        #     raise ValueError(f"Unsupported decay type: {args['decay_type']}")
+        # writer.add_scalar('Exploration/Epsilon', epsilon, episode)
 
     os.makedirs(f"{dest_path}/logs/results/{out_path}/{seed}/", exist_ok=True)
     with open(f"{dest_path}/logs/results/{out_path}/{seed}/learning_curve.json", "w", encoding="utf8") as output_file:

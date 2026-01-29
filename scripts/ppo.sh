@@ -13,7 +13,7 @@ python main.py \
     --vf_coef 0.5 \
     --gae_lambda 0.95 \
     --max_grad_norm 0.5 \
-    --num_iterations 2000 \
+    --num_iterations 5000 \
     --steps_per_iteration 1000 \
     --update_epochs 4 \
     --minibatch_size 512 \
@@ -22,6 +22,6 @@ python main.py \
     --max_no_improvement 30000 \
     --eval_episodes 50 \
     --eval_every 1 \
-    --train_seeds 5 6 7 8 \
+    --train_seeds 9 10 \
     --eval_seed 1234 \
     --anneal_lr \

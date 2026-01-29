@@ -10,8 +10,8 @@ python main.py \
     --tol 0.01 \
     --max_no_improvement 5000 \
     --eval_episodes 50 \
-    --eval_every 1 \
-    --train_seeds 1 \
+    --eval_every 20 \
+    --train_seeds 2 \
     --eval_seed 1234
 
 

@@ -97,7 +97,7 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
                 eval_params=eval_params,
                 episode=episode, 
                 eval_episodes=args['eval_episodes'],
-                Q=Q[0, :, :], 
+                Q=Q, 
                 keys=keys, 
                 multipliers=multipliers,
                 tol=args['tol'], 
