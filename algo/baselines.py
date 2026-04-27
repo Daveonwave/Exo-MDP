@@ -1,5 +1,5 @@
-from pcmdp.elevator.simulator.passenger import generate_arrival_distribution
-from pcmdp.elevator.elevator_env import ElevatorEnv
+from exomdp.elevator.simulator.passenger import generate_arrival_distribution
+from exomdp.elevator.elevator_env import ElevatorEnv
 from rich.pretty import pprint
 from IPython.display import clear_output
 from time import sleep

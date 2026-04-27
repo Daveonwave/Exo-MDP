@@ -3,7 +3,7 @@ from tqdm.rich import tqdm, trange
 import numpy as np
 import json
 import numpy as np
-from pcmdp import FunctionalElevatorEnv, FunctionalTaxiEnv, FunctionalTradingEnv, FunctionalTaxiTrafficEnv
+from exomdp import FunctionalElevatorEnv, FunctionalTaxiEnv, FunctionalTradingEnv, FunctionalTaxiTrafficEnv
 from algo.utils import *
 from algo.evaluation import validation_step
 
@@ -131,25 +131,22 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
             indices = flatten_state(vec_state, keys, multipliers)
 
             # Choose action based on epsilon-greedy policy (not necessary, we can just use argmax)
-            # if rng.uniform() < epsilon:
-            #     vec_action = np.array([rng.integers(A)] * batch_size)  # Explore action space
-            # else:
-            #     vec_action = np.argmax(Q[indices, :], axis=1) 
-            vec_action = np.argmax(Q[indices, :], axis=1)
+            for action in range(A):    
+                vec_action = np.full((batch_size,), action)
                 
-            # Get the next state from the environment
-            next_vec_state = func_env.transition(state=vec_state, action=vec_action, rng=rng, params=params)
-            next_vec_state = compose_vec_state(next_vec_state, next_unctrl_obs, batch_size)
-                        
-            # Calculate rewards
-            rewards = func_env.reward(state=vec_state, action=vec_action, next_state=next_vec_state, rng=None, params=params)
-            cumulated_rewards += rewards
-            
-            # Q-update
-            next_indices = flatten_state(next_vec_state, keys, multipliers)
-            best_next_actions = np.argmax(Q[next_indices, :], axis=1)
-            td_targets = rewards + gamma * Q[next_indices, best_next_actions] 
-            Q[indices, vec_action] += alpha * (td_targets - Q[indices, vec_action])   
+                # Get the next state from the environment
+                next_vec_state = func_env.transition(state=vec_state, action=vec_action, rng=rng, params=params)
+                next_vec_state = compose_vec_state(next_vec_state, next_unctrl_obs, batch_size)
+                            
+                # Calculate rewards
+                rewards = func_env.reward(state=vec_state, action=vec_action, next_state=next_vec_state, rng=None, params=params)
+                cumulated_rewards += rewards
+                
+                # Q-update
+                next_indices = flatten_state(next_vec_state, keys, multipliers)
+                best_next_actions = np.argmax(Q[next_indices, :], axis=1)
+                td_targets = rewards + gamma * Q[next_indices, best_next_actions] 
+                Q[indices, vec_action] += alpha * (td_targets - Q[indices, vec_action])   
         
         writer.add_scalar('Training/MeanEpisodeReward', np.mean(cumulated_rewards), episode)
         writer.add_scalar('Training/MedianEpisodeReward', np.median(cumulated_rewards), episode)

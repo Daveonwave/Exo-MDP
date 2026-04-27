@@ -147,50 +147,50 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
         # --- Split Bellman Backup (No P_hat) ---
         # Instead of P_hat (S,A,S), we use P_ctrl and P_unctrl separately.
         # Logic: E[V'] = Sum_sc_next( P_ctrl * Sum_su_next( P_unctrl * V(sc_next, su_next) ) )
-        for h in reversed(range(H)):
-            V_next = V[h + 1]
-            
-            # Transform V into a grid (S_ctrl, S_unctrl). This allows us to multiply with P_unctrl efficiently.
-            V_grid = V_next[grid_to_global_s] 
-            
-            # Expectation over Uncontrollable Dynamics
-            V_avg_unctrl = V_grid @ P_unctrl.T 
-            
-            # Expectation over Controllable Dynamics
-            if state_factorizability:
-                # P_ctrl is (S_ctrl, A, S_ctrl)
-                Q_factorized = np.einsum("kax,xu->kau", P_ctrl, V_avg_unctrl)
-                
-                # Flatten back to global Q[s, a]
-                Q[h] = R + Q_factorized[s_ctrl_idx_map, :, s_unctrl_idx_map]
-                
-            else:
-                # P_ctrl is (S, A, S_ctrl) because dynamics depend on full state
-                # Expand V_avg_unctrl to match global S
-                V_relevant = V_avg_unctrl[:, s_unctrl_idx_map].T 
-                
-                # Compute expectation
-                expectation = np.einsum("sax,sx->sa", P_ctrl, V_relevant)
-                Q[h] = R + expectation
-            
-            # Update V for the next iteration (previous time step)
-            V[h] = np.max(Q[h], axis=1)
-            
-        # # Assemble the P_hat from the controllable and uncontrollable parts
-        # P_hat = np.zeros((S, A, S), dtype=np.float32)
-        # for s in range(S):
-        #     sc = s_ctrl_idx_map[s] if state_factorizability else s
-        #     su = s_unctrl_idx_map[s]
-        #     for a in range(A):
-        #         for sp in range(S):
-        #             scp = s_ctrl_idx_map[sp]
-        #             sup = s_unctrl_idx_map[sp]
-        #             P_hat[s, a, sp] = P_ctrl[sc, a, scp] * P_unctrl[su, sup]
-        
-        # # Now backward iteration
         # for h in reversed(range(H)):
-        #     Q[h] = R + np.einsum("sax,x->sa", P_hat, V[h + 1])
+        #     V_next = V[h + 1]
+            
+        #     # Transform V into a grid (S_ctrl, S_unctrl). This allows us to multiply with P_unctrl efficiently.
+        #     V_grid = V_next[grid_to_global_s] 
+            
+        #     # Expectation over Uncontrollable Dynamics
+        #     V_avg_unctrl = V_grid @ P_unctrl.T 
+            
+        #     # Expectation over Controllable Dynamics
+        #     if state_factorizability:
+        #         # P_ctrl is (S_ctrl, A, S_ctrl)
+        #         Q_factorized = np.einsum("kax,xu->kau", P_ctrl, V_avg_unctrl)
+                
+        #         # Flatten back to global Q[s, a]
+        #         Q[h] = R + Q_factorized[s_ctrl_idx_map, :, s_unctrl_idx_map]
+                
+        #     else:
+        #         # P_ctrl is (S, A, S_ctrl) because dynamics depend on full state
+        #         # Expand V_avg_unctrl to match global S
+        #         V_relevant = V_avg_unctrl[:, s_unctrl_idx_map].T 
+                
+        #         # Compute expectation
+        #         expectation = np.einsum("sax,sx->sa", P_ctrl, V_relevant)
+        #         Q[h] = R + expectation
+            
+        #     # Update V for the next iteration (previous time step)
         #     V[h] = np.max(Q[h], axis=1)
+            
+        # Assemble the P_hat from the controllable and uncontrollable parts
+        P_hat = np.zeros((S, A, S), dtype=np.float32)
+        for s in range(S):
+            sc = s_ctrl_idx_map[s] if state_factorizability else s
+            su = s_unctrl_idx_map[s]
+            for a in range(A):
+                for sp in range(S):
+                    scp = s_ctrl_idx_map[sp]
+                    sup = s_unctrl_idx_map[sp]
+                    P_hat[s, a, sp] = P_ctrl[sc, a, scp] * P_unctrl[su, sup]
+        
+        # Now backward iteration
+        for h in reversed(range(H)):
+            Q[h] = R + np.einsum("sax,x->sa", P_hat, V[h + 1])
+            V[h] = np.max(Q[h], axis=1)
         
         writer.add_scalar('Q/Max', np.max(Q), episode)
         writer.add_scalar('Q/Min', np.min(Q), episode)
