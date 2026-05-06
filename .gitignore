@@ -179,3 +179,4 @@ logs/
 *.pkl
 .DS_Store
 notebooks/plots-ICML/
+notebooks/plots-NeurIPS/

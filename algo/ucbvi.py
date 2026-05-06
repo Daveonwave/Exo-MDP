@@ -24,10 +24,6 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
     rng = np.random.default_rng(seed=seed)
     eval_seed = args['eval_seed']
     
-    best_eval_reward = -np.inf
-    best_eval_episode = 0
-    eval_counter = 0
-    learning_curve = {}
     keys, multipliers = build_state_index_map(env)
     print(f"State keys: {keys} Multipliers: {multipliers}")
     
@@ -42,46 +38,30 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
     # Estimates
     P_hat = defaultdict(lambda: defaultdict(dict))
     R_hat = np.zeros((S, A), dtype=np.float32)
-    B_sa = np.zeros((S, A), dtype=np.float32)
+    
+    # Bonus:  c * sqrt( log(2 S A H/delta) / n )
+    log_term = np.log(2 * S * A * H / delta)
+    B_sa = np.full((S, A), c_bonus * np.sqrt(log_term / 1), dtype=np.float32)
+    
     # Reward matrix
     if args['R_given']:
         R_hat = build_reward_matrix(env, keys, multipliers)
     
     # Value functions
-    V = np.zeros((H+1, S), dtype=np.float32)
+    V = np.zeros((H + 1, S), dtype=np.float32)
     Q = np.zeros((H, S, A), dtype=np.float32)
     
-    # Precompute log term for bonus calculation
-    log_term = np.log(2 * S * A * H / delta)
+    best_eval_reward = -np.inf
+    best_eval_episode = 0
+    eval_counter = 0
+    learning_curve = {}
     
-    # # Visitation counters
-    # N_sas = np.zeros((S, A, S), dtype=np.int32)
-    # N_sa = np.zeros((S, A), dtype=np.int32)
-    
-    # # Estimates
-    # # Precompute Exploration Bonus Constant
-    # # B_sa = c * sqrt(log_term / N_sa)
-    # log_term = np.log(2 * S * A * H / delta)
-    # B_sa = np.full((S, A), c_bonus * np.sqrt(log_term), dtype=np.float32) # Init with N=1 assumption (approx)
-    
-    # # Reward matrix
-    # if args['R_given']:
-    #     R_hat = build_reward_matrix(env, keys, multipliers)
-    # else:
-    #     R_hat = np.zeros((S, A), dtype=np.float32)
-    
-    # # Value functions
-    # V = np.zeros((H+1, S), dtype=np.float32)
-    # Q = np.zeros((H, S, A), dtype=np.float32)
-    
-    # # We initialize it to uniform to avoid div by zero initially
-    # P_hat = np.zeros((S, A, S), dtype=np.float32) 
-    
-    def _update(s, a, r, s_next):
+    def _update(h, s, a, r, s_next):
         """
         Update the empirical estimates of the MDP and the exploration bonus.
 
         Args:
+            h (int): Current horizon step.
             s (int): Current state.
             a (int): Action taken.
             r (float): Reward received.
@@ -102,32 +82,20 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
             R_hat[s, a] += (r - R_hat[s, a]) / n
         
         total = sum(N_sas[s][a].values())
-        if total > 0:
-            P_hat[s][a] = {sp: count / total for sp, count in N_sas[s][a].items()}
-        else:
-            P_hat[s][a] = {}
-        B_sa[s, a] = c_bonus * np.sqrt(log_term / max(1, n))
-        
+        P_hat[s][a] = {sp: count / total for sp, count in N_sas[s][a].items()}
+
         # Update Bonus
-        # c * sqrt(L / n)
-        # B_sa[s, a] = c_bonus * np.sqrt(log_term / n)
-        
-        # Update Transition Probabilities (Local Update)
-        # We only update the specific row (s, a) that changed
-        # row_sum = np.sum(N_sas[s, a])
-        # if row_sum > 0:
-        #     P_hat[s, a] = N_sas[s, a] / row_sum
+        B_sa[s, a] = c_bonus * np.sqrt(log_term / n)
     
     for episode in trange(n_episodes, desc="Training UCBVI"):
-        # Validation step every 1000 episodes during training
-        if episode % args['eval_every'] == 0 and episode > 0:
+        if episode % args['eval_every'] == 0:
             best_eval_reward, best_eval_episode, eval_counter = validation_step(
                 env_name=args['env'],
                 env_id=args['env_id'],
                 eval_params=eval_params,
                 episode=episode, 
                 eval_episodes=args['eval_episodes'],
-                Q=Q[0, :, :], 
+                Q=Q[0], 
                 keys=keys, 
                 multipliers=multipliers,
                 tol=args['tol'], 
@@ -155,7 +123,6 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
         while not done:
             # randomized argmax on ties
             q_vals = Q[h, obs_key, :]
-            # Fast random argmax
             max_val = np.max(q_vals)
             candidates = np.flatnonzero(q_vals == max_val)
             action = int(rng.choice(candidates)) 
@@ -164,7 +131,7 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
             next_obs_key = obs_to_key(next_obs, keys, multipliers)
 
             # Update empirical estimates
-            _update(obs_key, action, reward, next_obs_key)
+            _update(h, obs_key, action, reward, next_obs_key)
             cumulated_reward += reward
             done = terminated or truncated
             
@@ -172,36 +139,22 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
             h += 1
         
         writer.add_scalar('Training/MeanEpisodeReward', cumulated_reward, episode)
-        writer.add_scalar('Training/MedianEpisodeReward', np.median(cumulated_reward), episode)
+        # writer.add_scalar('Training/MedianEpisodeReward', np.median(cumulated_reward), episode)
         
-        # Backward Value Iteration with bonuses
-        V[H, :]  = 0  # Terminal value function
+        V[H, :] = 0
         
         for h in reversed(range(H)):
-            for s in range(S):
-                # expected value per action (A,)
-                exp_values = np.zeros(A, dtype=np.float32)
-                for a, nexts in P_hat[s].items():
-                    exp_values[a] = sum(prob * V[h+1, s_next] for s_next, prob in nexts.items())
-                Q[h, s, :] = np.minimum(H, R_hat[s, :] + B_sa[s, :] + exp_values)
-                V[h, s] = np.max(Q[h, s, :])
+            # Initialize expected values to 0
+            exp_values = np.zeros((S, A), dtype=np.float32)
             
-            # 1. Compute Expected Value for NEXT state (Vectorized)
-            # P_hat is (S, A, S), V[h+1] is (S,)
-            # We want (S, A) result.
-            # E[V'](s, a) = sum_{s'} P(s'|s,a) * V(s')
+            # Iterate ONLY over visited states to eliminate the O(S) loop
+            for s, actions in P_hat.items():
+                for a, nexts in actions.items():
+                    exp_values[s, a] = sum(prob * V[h+1, s_next] for s_next, prob in nexts.items())
             
-            # np.matmul broadcasts: (S, A, S) @ (S,) -> (S, A)
-            # expected_values = P_hat @ V[h + 1]
-                        
-            # 2. Compute Q-values with Bonus
-            # Q = R + Bonus + Expected_Value
-            # We also clip to H as per UCBVI-CH paper to keep values bounded
-            # Q[h] = np.minimum(H, R_hat + B_sa + expected_values)
-            #print(Q[h])  # Debugging line to trace Q-values
-            
-            # 3. Compute V
-            # V[h] = np.max(Q[h], axis=1)
+            # Vectorize the Bellman equation across all S and A simultaneously. 
+            Q[h, :, :] = np.minimum(H, R_hat + B_sa + exp_values)
+            V[h, :] = np.max(Q[h, :, :], axis=1)
                 
         writer.add_scalar('Q/Max', np.max(Q), episode)
         writer.add_scalar('Q/Min', np.min(Q), episode)
@@ -211,8 +164,8 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
     with open(f"{dest_path}/logs/results/{out_path}/{seed}/learning_curve.json", "w", encoding="utf8") as output_file:
         json.dump(learning_curve, output_file)
 
-    with open(f"{dest_path}/logs/results/{out_path}/{seed}/world_models.pkl", "wb") as model_output:
-        pickle.dump({'V': V, 'N_sa': N_sa}, model_output)
+    #with open(f"{dest_path}/logs/results/{out_path}/{seed}/world_models.pkl", "wb") as model_output:
+    #    pickle.dump({'V': V, 'N_sa': N_sa, 'N_sas': N_sas, 'R_hat': R_hat, 'P_hat': P_hat, 'B_sa': B_sa}, model_output)
     
     print("Training complete!")
     writer.close()

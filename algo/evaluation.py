@@ -53,7 +53,7 @@ def validation_step(env_name: str,
 
 
 def evaluate_tabular(env_name, env_id, Q, eval_env_params, keys=None, multipliers=None, eval_episodes=10, writer=None, episode=0, eval_seed=None):
-    env = gym.make(f"pcmdp/{env_id}", **{'settings': eval_env_params})
+    env = gym.make(f"exomdp/{env_id}", **{'settings': eval_env_params})
     
     avg_cumulated_reward = 0
     ep_cum_rewards = []
@@ -73,14 +73,13 @@ def evaluate_tabular(env_name, env_id, Q, eval_env_params, keys=None, multiplier
         done = False
         cumulated_reward = 0
         h = 0
-        
+                
         while not done:
-            # Q has shape (H, S, A) in exavi and ucbvi
+            # Q has shape (H, S, A) in pto and ucbvi
             if Q.ndim == 3:
                 action = np.argmax(Q[h, obs_key, :])  # Exploit learned values
                 h += 1
             else:
-                
                 action = np.argmax(Q[obs_key, :])  # Exploit learned values            
             next_obs, reward, terminated, truncated, info = env.step(action)
             next_obs_key = get_indices(next_obs, keys, multipliers)
@@ -106,7 +105,7 @@ def evaluate_tabular(env_name, env_id, Q, eval_env_params, keys=None, multiplier
 
 
 def evaluate_nn(env_name, env_id, Q, eval_env_params, keys=None, multipliers=None, eval_episodes=10, writer=None, episode=0, eval_seed=None, agent=None, wrapper_class=None):
-    env = gym.make(f"pcmdp/{env_id}", **{'settings': eval_env_params})
+    env = gym.make(f"exomdp/{env_id}", **{'settings': eval_env_params})
     env = wrapper_class(env)
     
     avg_cumulated_reward = 0

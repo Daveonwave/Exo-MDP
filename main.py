@@ -1,5 +1,5 @@
-from pcmdp.utils import parameter_generator
-from algo import ql, exaq, ucbvi, exavi, ppo
+from exomdp.utils import parameter_generator
+from algo import ql, exaq, ucbvi, pto, ppo
 from algo.baselines import *
 from rich.pretty import pprint
 import gymnasium as gym
@@ -13,22 +13,22 @@ def run_single_seed(args, seed):
     print(f"\n=== Starting seed {seed} ===")
 
     # Reinitialize env settings per process (avoid cross-process sharing)
-    env_settings = parameter_generator(world_file=f"pcmdp/{args['env']}/{args['world']}")
-    eval_env_settings = parameter_generator(world_file=f"pcmdp/{args['env']}/{args['world']}")
+    env_settings = parameter_generator(world_file=f"exomdp/{args['env']}/{args['world']}")
+    eval_env_settings = parameter_generator(world_file=f"exomdp/{args['env']}/{args['world']}")
 
     # Create environment
     if args['env'] == 'elevator':
-        env = gym.make(f"pcmdp/{args['env_id']}",
+        env = gym.make(f"exomdp/{args['env_id']}",
                        render_mode=None if not args['render'] else 'human',
                        settings=env_settings,
                        seed=seed)
     elif args['env'] == 'taxi':
-        env = gym.make(f"pcmdp/{args['env_id']}",
+        env = gym.make(f"exomdp/{args['env_id']}",
                            render_mode=None if not args['render'] else 'ansi',
                            settings=env_settings,
                            seed=seed)
     elif args['env'] == 'trading':
-        env = gym.make(f"pcmdp/{args['env_id']}",
+        env = gym.make(f"exomdp/{args['env_id']}",
                        render_mode=None,
                        settings=env_settings,
                        seed=seed)
@@ -46,9 +46,8 @@ def run_single_seed(args, seed):
     elif algo == 'ucbvi':
         ucbvi.train(env=env, args=args, settings=env_settings,
                     eval_params=eval_env_settings, horizon=env_settings['horizon'], seed=seed)
-    elif algo == 'exavi':
-        exavi.train(env=env, args=args, settings=env_settings,
-                    eval_params=eval_env_settings, horizon=env_settings['horizon'], seed=seed)
+    elif algo == 'pto':
+        pto.train(env=env, args=args, settings=env_settings, horizon=env_settings['horizon'], eval_params=eval_env_settings, seed=seed)
     elif algo == 'ppo':
         ppo.train(env=env, args=args, settings=env_settings, eval_params=eval_env_settings, seed=seed)
     elif algo == 'random':
@@ -70,7 +69,7 @@ if __name__ == "__main__":
     # General parameters
     parser.add_argument('--env', type=str, choices=['elevator', 'taxi', 'trading'], required=True, help="Select the environment.")
     parser.add_argument('--env_id', type=str, default=None, help="Gym environment ID (if different from env).")
-    parser.add_argument('--algo', type=str, choices=['ql', 'exaq', 'ucbvi', 'longestFirst', 'random', 'exavi', 'ppo'], required=True,
+    parser.add_argument('--algo', type=str, choices=['ql', 'exaq', 'ucbvi', 'longestFirst', 'random', 'pto', 'ppo'], required=True,
                         help="Algorithm to run: 'qlearning', 'qlearning_augmented', or 'ucbvi'.")
     parser.add_argument('--exp_name', type=str, help="Experiment name for logging.")
     parser.add_argument('--dest_folder', type=str, default=None, help="Path to server logs.")

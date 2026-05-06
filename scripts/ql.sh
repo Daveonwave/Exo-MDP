@@ -5,7 +5,7 @@ python main.py \
     --exp_name "provaTaxiTraffic" \
     --dest_folder "/data2/salaorni/pcmdp" \
     --world "world.yaml" \
-    --n_episodes 15000 \
+    --n_episodes 10000 \
     --gamma 1 \
     --epsilon 1.0 \
     --epsilon_decay 0.9995 \
@@ -16,7 +16,7 @@ python main.py \
     --max_no_improvement 10000 \
     --eval_episodes 50 \
     --eval_every 1 \
-    --train_seeds 6 7 8 9 10 \
+    --train_seeds 1 \
     --eval_seed 1234
 
 # python main.py \
