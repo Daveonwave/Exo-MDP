@@ -57,7 +57,7 @@ The framework implements the following reinforcement learning algorithms:
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Daveonwave/Exo-MDP.git
 cd Exo-MDP
 ```
 
@@ -84,15 +84,18 @@ Run training with the main script:
 
 ```bash
 python main.py \
-  --env elevator \
-  --env_id ElevatorEnv-v0 \
-  --world world.yaml \
-  --algo ql \
-  --exp_name my_experiment \
-  --n_episodes 10000 \
-  --alpha 0.1 \
-  --gamma 0.99 \
-  --epsilon 1.0
+    --env elevator \
+    --env_id elevator-v0 \
+    --algo pto \
+    --exp_name <exp-name> \
+    --dest_folder <dest-folder> \
+    --world "world.yaml" \
+    --n_episodes 10000 \
+    --gamma 1 \
+    --eval_episodes 50 \
+    --eval_every 1 \
+    --train_seeds 1 2 3 4 5 \
+    --eval_seed 1234
 ```
 
 #### Key Arguments

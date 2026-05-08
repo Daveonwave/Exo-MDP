@@ -47,8 +47,8 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
         P_ctrl = build_ctrl_transition_matrix(env, ctrl_keys, ctrl_multipliers, ctrl_keys, ctrl_multipliers)
 
     # Visitation counters for uncontrollable dynamics
-    N_ssp = np.zeros((S_unctrl, S_unctrl), dtype=np.int32)
-    P_unctrl = np.zeros((S_unctrl, S_unctrl), dtype=np.float32)
+    N_ssp = np.zeros((H, S_unctrl, S_unctrl), dtype=np.int32)
+    P_unctrl = np.zeros((H, S_unctrl, S_unctrl), dtype=np.float32)
     P_unctrl[:] = 1.0 / max(1, S_unctrl)
     
     # Value functions
@@ -71,22 +71,23 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
         s_unctrl_idx_map[s] = su
         grid_to_global_s[sc, su] = s
 
-    def _update_unctrl_dynamics(s_unctrl, s_unctrl_next):
+    def _update_unctrl_dynamics(h, s_unctrl, s_unctrl_next):
         """
         Update the empirical estimates of the MDP and the exploration bonus.
 
         Args:
+            h (int): Time step.
             s (int): Current state.
             s_next (int): Next state.
         """
         s_idx = obs_to_key(s_unctrl, unctrl_keys, unctrl_multipliers)
         s_next_idx = obs_to_key(s_unctrl_next, unctrl_keys, unctrl_multipliers)
         
-        N_ssp[s_idx, s_next_idx] += 1
+        N_ssp[h, s_idx, s_next_idx] += 1
         #P_unctrl[h, s_idx, s_next_idx] = N_ssp[h, s_idx, s_next_idx] / np.sum(N_ssp[h, s_idx, :])  # MLE
-        row_sum = np.sum(N_ssp[s_idx, :])
+        row_sum = np.sum(N_ssp[h, s_idx, :])
         if row_sum > 0:
-            P_unctrl[s_idx, :] = N_ssp[s_idx, :] / row_sum
+            P_unctrl[h, s_idx, :] = N_ssp[h, s_idx, :] / row_sum
             
     # Training procedure of PTO
     for episode in trange(n_episodes, desc="Training PTO"):
@@ -98,7 +99,7 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
                 eval_params=eval_params,
                 episode=episode, 
                 eval_episodes=args['eval_episodes'],
-                Q=Q[0], 
+                Q=Q, 
                 keys=keys, 
                 multipliers=multipliers,
                 tol=args['tol'], 
@@ -134,7 +135,7 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
             # Update empirical estimates of uncontrollable dynamics
             unctrl_obs = env.unwrapped.get_unctrl_obs(obs)
             unctrl_obs_next = env.unwrapped.get_unctrl_obs(next_obs)
-            _update_unctrl_dynamics(unctrl_obs, unctrl_obs_next)
+            _update_unctrl_dynamics(h, unctrl_obs, unctrl_obs_next)
             
             cumulated_reward += reward
             done = terminated or truncated
@@ -157,7 +158,7 @@ def train(env, args, eval_params, horizon, seed=None, model_file=None, settings=
             V_grid = V_next_padded[grid_to_global_s]
             
             # Expectation over Uncontrollable Dynamics
-            V_avg_unctrl = V_grid @ P_unctrl.T 
+            V_avg_unctrl = V_grid @ P_unctrl[h].T 
             
             # Expectation over Controllable Dynamics
             if state_factorizability:
