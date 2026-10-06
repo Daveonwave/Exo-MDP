@@ -38,6 +38,8 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
     A = env.action_space.n
     Q = np.zeros((S, A))
     
+    print(f"State size: {S}, Action size: {A}")
+    
     for episode in trange(n_episodes, desc="Training Q-Learning"):
         # Validation step every 1000 episodes during training
         if episode % args['eval_every'] == 0 and episode > 0:

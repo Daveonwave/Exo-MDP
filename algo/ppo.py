@@ -185,7 +185,7 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
         
     # env setup
     envs = gym.vector.SyncVectorEnv(
-        [make_env(env_id=f"pcmdp/{args['env_id']}", settings=settings, rng=rng) for _ in range(num_envs)]
+        [make_env(env_id=f"exomdp/{args['env_id']}", settings=settings, rng=rng) for _ in range(num_envs)]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 

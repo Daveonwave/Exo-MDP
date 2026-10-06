@@ -1,0 +1,17 @@
+horizon: 200
+timestep: 1.0
+
+trading:
+  time_intervals: 200 # Number of discrete time intervals
+  max_amount: 100 # Maximum number of securities to trade
+  min_price: 90 # Minimum price of the security
+  max_price: 110 # Maximum price of the security
+  initial_price: 100.0 # Initial price of the security
+  granularity: 0.08 # Price discretization step
+  drift: 0.0 # Drift of the security price
+  volatility: 0.3 # Volatility of the security price
+  risk_aversion: 100.0 # Risk aversion parameter
+  transaction_cost: 0.0625 # Transaction cost per trade unit
+  permanent_impact: 0.00000025 # Permanent impact parameter
+  temporary_impact: 0.00002 # Temporary impact parameter
+

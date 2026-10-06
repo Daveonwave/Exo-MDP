@@ -58,7 +58,7 @@ class FunctionalTaxiTrafficEnv(FuncEnv):
         new_cols = np.copy(cols)
         new_pass_idxs = np.copy(pass_idxs)
         new_dest_idxs = np.copy(dest_idxs)
-        new_traffic = np.copy(traffic)
+        #new_traffic = np.copy(traffic)
         
         pos = np.stack((rows, cols), axis=1)
         # Check if taxi is at a active traffic location
@@ -104,8 +104,8 @@ class FunctionalTaxiTrafficEnv(FuncEnv):
         new_state = {'row': new_rows,
                      'col': new_cols,
                      'pass_idx': new_pass_idxs,
-                     'dest_idx': new_dest_idxs,
-                     'traffic': new_traffic}
+                     'dest_idx': new_dest_idxs}
+                     #'traffic': new_traffic}
         
         return new_state
 

@@ -153,7 +153,7 @@ def train(env, args, eval_params, seed=None, model_file=None, settings=None):
                 # Get the next state from the environment
                 next_vec_state = func_env.transition(state=vec_state, action=vec_action, rng=rng, params=params)
                 next_vec_state = compose_vec_state(next_vec_state, next_unctrl_obs, batch_size)
-                            
+                
                 # Calculate rewards
                 rewards = func_env.reward(state=vec_state, action=vec_action, next_state=next_vec_state, rng=None, params=params)
                 cumulated_rewards += rewards

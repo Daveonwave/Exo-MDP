@@ -263,10 +263,9 @@ def compose_vec_state(ctrl_obs, unctrl_obs, batch_size):
     Compose full observation from controllable and uncontrollable parts.
 
     Args:
-        controllable_obs: dict of controllable observation components
-        uncontrollable_obs: dict of uncontrollable observation components
-        keys_controllable: list of keys for controllable components
-        keys_uncontrollable: list of keys for uncontrollable components
+        ctrl_obs: dict of controllable observation components
+        unctrl_obs: dict of uncontrollable observation components
+        batch_size: int, number of samples in the batch
     """
     # For other space types, we need to handle them differently
     vec_state = {}

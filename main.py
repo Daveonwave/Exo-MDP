@@ -1,5 +1,5 @@
 from exomdp.utils import parameter_generator
-from algo import ql, exaq, ucbvi, pto, ppo
+from algo import ql, exaq, ucbvi, pto, ppo, exaq_mod
 from algo.baselines import *
 from rich.pretty import pprint
 import gymnasium as gym
@@ -43,6 +43,8 @@ def run_single_seed(args, seed):
         ql.train(env=env, args=args, settings=env_settings, eval_params=eval_env_settings, seed=seed)
     elif algo == 'exaq':
         exaq.train(env=env, args=args, settings=env_settings, eval_params=eval_env_settings, seed=seed)
+    elif algo == 'exaq-mod':
+        exaq_mod.train(env=env, args=args, settings=env_settings, eval_params=eval_env_settings, seed=seed)
     elif algo == 'ucbvi':
         ucbvi.train(env=env, args=args, settings=env_settings,
                     eval_params=eval_env_settings, horizon=env_settings['horizon'], seed=seed)
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     # General parameters
     parser.add_argument('--env', type=str, choices=['elevator', 'taxi', 'trading'], required=True, help="Select the environment.")
     parser.add_argument('--env_id', type=str, default=None, help="Gym environment ID (if different from env).")
-    parser.add_argument('--algo', type=str, choices=['ql', 'exaq', 'ucbvi', 'longestFirst', 'random', 'pto', 'ppo'], required=True,
+    parser.add_argument('--algo', type=str, choices=['ql', 'exaq', 'ucbvi', 'longestFirst', 'random', 'pto', 'ppo', 'exaq-mod'], required=True,
                         help="Algorithm to run: 'qlearning', 'qlearning_augmented', or 'ucbvi'.")
     parser.add_argument('--exp_name', type=str, help="Experiment name for logging.")
     parser.add_argument('--dest_folder', type=str, default=None, help="Path to server logs.")

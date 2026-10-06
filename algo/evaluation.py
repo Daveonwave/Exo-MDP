@@ -46,8 +46,9 @@ def validation_step(env_name: str,
             with open(f"{dest_path}/logs/models/{exp_name}/{train_seed}/best_q_table.pkl", "wb") as output_file:
                 pickle.dump(Q, output_file)
         else:
-            with open(f"{dest_path}/logs/models/{exp_name}/{train_seed}/best_model.pkl", "wb") as output_file:
-                pickle.dump(agent, output_file)
+            pass
+            #with open(f"{dest_path}/logs/models/{exp_name}/{train_seed}/best_model.pkl", "wb") as output_file:
+            #    pickle.dump(agent, output_file)
     
     return best_eval_reward, best_eval_episode, eval_counter
 
